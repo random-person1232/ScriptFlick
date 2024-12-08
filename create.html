@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Video - ScriptFlick</title>
+    <!-- React and TailwindCSS -->
+    <script src="https://unpkg.com/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen py-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold mb-6 text-center">ScriptFlick Video Creator</h1>
+
+        <div class="space-y-6">
+            <!-- Story Input -->
+            <div class="space-y-4">
+                <label for="storyInput" class="block text-lg font-medium">Enter your story:</label>
+                <textarea
+                    id="storyInput"
+                    class="w-full h-40 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter your story here..."
+                ></textarea>
+            </div>
+
+            <!-- Style Selectors -->
+            <div id="styleSelector"></div>
+            <div id="captionStyleSelector"></div>
+
+            <!-- Create Button -->
+            <button
+                id="createButton"
+                class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+            >
+                Create Video
+            </button>
+        </div>
+
+        <!-- Progress Status -->
+        <div id="status" class="hidden space-y-4 mt-6">
+            <div class="w-full bg-gray-200 rounded-full h-4">
+                <div
+                    id="progress-bar"
+                    class="bg-blue-600 h-4 rounded-full transition-all duration-300"
+                    style="width: 0%"
+                ></div>
+            </div>
+            <div class="space-y-2">
+                <div class="flex justify-between text-sm text-gray-600">
+                    <span id="progress-percentage">0%</span>
+                    <span id="elapsed-time">Time: 0:00</span>
+                </div>
+                <div id="statusText" class="text-center">Initializing...</div>
+            </div>
+            <div class="flex justify-center">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+        </div>
+
+        <!-- Video Container -->
+        <div id="videoContainer" class="hidden space-y-4 mt-6">
+            <h2 class="text-lg font-semibold">Generated Video</h2>
+            <video id="videoPlayer" class="w-full rounded-lg shadow-lg" controls>
+                Your browser does not support the video tag.
+            </video>
+            <div class="flex space-x-4">
+                <a
+                    id="downloadButton"
+                    class="flex-1 text-center bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+                    download=""
+                >
+                    Download Video
+                </a>
+                <a
+                    id="editButton"
+                    class="flex-1 text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                    href="#"
+                >
+                    Edit Video
+                </a>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error" class="hidden p-4 mt-6 bg-red-100 border border-red-400 text-red-700 rounded-md"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                // Initialize style selectors
+                const styleRoot = document.getElementById('styleSelector');
+                const captionStyleRoot = document.getElementById('captionStyleSelector');
+
+                // Load and render style selectors
+                const { default: StyleSelector } = await import('/static/components/StyleSelector.js');
+                const { default: CaptionStyleSelector } = await import('/static/components/CaptionStyleSelector.js');
+                ReactDOM.createRoot(styleRoot).render(React.createElement(StyleSelector));
+                ReactDOM.createRoot(captionStyleRoot).render(React.createElement(CaptionStyleSelector));
+
+                const stylePromptMap = {
+                    'Default': '',
+                    'Realistic': ', photorealistic style, highly detailed',
+                    'Cinematic': ', cinematic style, dramatic lighting, movie scene quality',
+                    'Photographic': ', professional photography, high resolution, DSLR quality',
+                    '3D Model': ', 3D rendered, octane render, detailed textures',
+                    'Anime': ', anime style, manga art, cel shaded',
+                    'Digital Art': ', digital art, stylized illustration, vibrant colors',
+                    'Dark': ', dark and moody, atmospheric lighting, rich shadows'
+                };
+
+                let currentTaskId = null;
+
+                // Helper functions
+                const showError = (message) => {
+                    const errorDiv = document.getElementById('error');
+                    errorDiv.textContent = message;
+                    errorDiv.classList.remove('hidden');
+                };
+
+                const hideError = () => {
+                    document.getElementById('error').classList.add('hidden');
+                };
+
+                const showStatus = () => {
+                    document.getElementById('status').classList.remove('hidden');
+                    document.getElementById('createButton').disabled = true;
+                };
+
+                const hideStatus = () => {
+                    document.getElementById('status').classList.add('hidden');
+                    document.getElementById('createButton').disabled = false;
+                };
+
+                const updateProgress = (progress, currentStep, stepDetails) => {
+                    document.getElementById('progress-bar').style.width = `${progress}%`;
+                    document.getElementById('progress-percentage').textContent = `${progress}%`;
+                    document.getElementById('statusText').textContent = `${currentStep}: ${stepDetails}`;
+                };
+
+                const formatTime = (seconds) => {
+                    const minutes = Math.floor(seconds / 60);
+                    const remainingSeconds = Math.floor(seconds % 60);
+                    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+                };
+
+                // Status polling function
+                const startStatusPolling = async (taskId) => {
+                    const startTime = Date.now();
+                    currentTaskId = taskId;
+
+                    const pollInterval = setInterval(async () => {
+                        try {
+                            const response = await fetch('/api/status');
+                            const data = await response.json();
+                            
+                            updateProgress(data.progress, data.current_step, data.step_details);
+                            document.getElementById('elapsed-time').textContent = 
+                                `Time: ${formatTime((Date.now() - startTime) / 1000)}`;
+
+                            if (data.status === 'complete') {
+                                clearInterval(pollInterval);
+                                hideStatus();
+                                document.getElementById('videoContainer').classList.remove('hidden');
+                                document.getElementById('videoPlayer').src = `/generated_videos/video_${taskId}.mp4`;
+                                document.getElementById('downloadButton').href = `/generated_videos/video_${taskId}.mp4`;
+                                document.getElementById('editButton').href = `/edit?video=${taskId}`;
+                            } else if (data.status === 'error') {
+                                clearInterval(pollInterval);
+                                hideStatus();
+                                showError(data.error);
+                            }
+                        } catch (error) {
+                            clearInterval(pollInterval);
+                            hideStatus();
+                            showError('Failed to get status update');
+                        }
+                    }, 1000);
+                };
+
+                // Create button click handler
+                document.getElementById('createButton').addEventListener('click', async () => {
+                    const text = document.getElementById('storyInput').value;
+                    const imageStyle = document.getElementById('imageStyle').value;
+                    const captionStyle = document.getElementById('captionStyle').value;
+                    
+                    if (!text) {
+                        showError('Please enter a story first.');
+                        return;
+                    }
+
+                    try {
+                        hideError();
+                        showStatus();
+                        
+                        const stylePrompt = stylePromptMap[imageStyle] || '';
+                        
+                        const response = await fetch('/api/create-video', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                text,
+                                caption_style: captionStyle,
+                                image_style: stylePrompt
+                            }),
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Failed to start video creation');
+                        }
+
+                        const data = await response.json();
+                        if (data.status === 'started') {
+                            startStatusPolling(data.task_id);
+                        } else {
+                            throw new Error('Invalid response from server');
+                        }
+                    } catch (error) {
+                        showError(error.message);
+                        hideStatus();
+                    }
+                });
+
+                // Reset UI when starting new video
+                const resetUI = () => {
+                    document.getElementById('videoContainer').classList.add('hidden');
+                    document.getElementById('error').classList.add('hidden');
+                    document.getElementById('status').classList.add('hidden');
+                    document.getElementById('progress-bar').style.width = '0%';
+                    document.getElementById('progress-percentage').textContent = '0%';
+                    document.getElementById('elapsed-time').textContent = 'Time: 0:00';
+                    document.getElementById('statusText').textContent = 'Initializing...';
+                };
+
+                // Reset button for testing
+                const resetButton = document.createElement('button');
+                resetButton.textContent = 'Reset';
+                resetButton.className = 'mt-4 px-4 py-2 bg-gray-200 rounded';
+                resetButton.onclick = resetUI;
+                document.querySelector('.max-w-4xl').appendChild(resetButton);
+                
+            } catch (error) {
+                console.error('Error initializing components:', error);
+                document.getElementById('error').textContent = 'Error loading components: ' + error.message;
+                document.getElementById('error').classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

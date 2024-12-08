@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Video - ScriptFlick</title>
+    <style>
+        /* Reset and Base Styles */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        /* Layout Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .editor-layout {
+            display: flex;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .video-section {
+            width: 40%;
+        }
+
+        .edit-section {
+            width: 60%;
+        }
+
+        /* Video Player */
+        .video-preview {
+            width: 100%;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border: none;
+            background: none;
+            font-size: 16px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s ease;
+        }
+
+        .tab:hover {
+            color: #007bff;
+        }
+
+        .tab.active {
+            border-bottom: 2px solid #007bff;
+            color: #007bff;
+        }
+
+        /* Content Sections */
+        .tab-content {
+            display: none;
+            max-height: 70vh;
+            overflow-y: auto;
+            padding-right: 15px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .segment {
+            background: #fff;
+            border: 1px solid #e1e4e8;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 300px 1fr;
+            gap: 20px;
+        }
+
+        .segment-header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .segment-text {
+            grid-column: 1 / -1;
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        .segment-image-container {
+            width: 300px;
+        }
+
+        .segment-image {
+            width: 100%;
+            height: auto;
+            object-fit: contain;
+            border-radius: 4px;
+            border: 1px solid #e1e4e8;
+        }
+
+        .segment-controls {
+            flex: 1;
+        }
+
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .prompt-container {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #e1e4e8;
+            margin-bottom: 15px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            line-height: 1.5;
+            min-height: 100px;
+        }
+
+        .prompt-editor {
+            width: 100%;
+            min-height: 100px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            resize: vertical;
+            font-family: inherit;
+            line-height: 1.5;
+            display: none;
+        }
+
+        .transition-select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-top: 8px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .button-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .button-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        /* Make segments list scrollable instead of individual segments */
+        .segments-container {
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+            padding-right: 20px;
+        }
+        /* Form Elements */
+        .input-group {
+            margin-bottom: 15px;
+        }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .input-group textarea {
+            width: 100%;
+            min-height: 80px;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            resize: vertical;
+            font-family: inherit;
+            line-height: 1.5;
+        }
+
+        .input-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            background-color: white;
+        }
+
+        /* Captions */
+        .caption {
+            background-color: #f8f9fa;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid #e1e4e8;
+        }
+
+        .caption-timing {
+            display: flex;
+            justify-content: space-between;
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .caption-content {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .caption-text {
+            flex: 1;
+            font-size: 16px;
+            padding: 15px;
+            background: #fff;
+            border-radius: 6px;
+            border: 1px solid #eee;
+        }
+
+        .caption-controls {
+            width: 200px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        /* Buttons */
+        .button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .button-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .button-primary:hover {
+            background-color: #0056b3;
+        }
+
+        .button-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+
+        .button-secondary:hover {
+            background-color: #545b62;
+        }
+
+        .save-btn {
+            margin-top: 20px;
+            padding: 12px 24px;
+            font-size: 16px;
+            width: auto;
+            float: right;
+        }
+
+        /* Messages */
+        .message {
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 6px;
+            display: none;
+        }
+
+        .error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success {
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+
+        /* Loading State */
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            font-size: 18px;
+            color: #666;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin-right: 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="editor-layout">
+            <!-- Video Preview Section -->
+            <div class="video-section">
+                <video id="videoPlayer" class="video-preview" controls>
+                    <source type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+
+            <!-- Editing Interface Section -->
+            <div class="edit-section">
+                <div class="tabs">
+                    <button class="tab active" data-tab="segments">Video Segments</button>
+                    <button class="tab" data-tab="captions">Captions</button>
+                </div>
+
+                <div id="error" class="message error"></div>
+                <div id="success" class="message success"></div>
+
+                <div id="loading" class="loading">
+                    <div class="loading-spinner"></div>
+                    <span>Loading video data...</span>
+                </div>
+
+                <div id="segments" class="tab-content active"></div>
+                <div id="captions" class="tab-content"></div>
+
+                <button id="saveChanges" class="button button-primary save-btn">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global Variables
+        let videoData = null;
+        const videoId = new URLSearchParams(window.location.search).get('video');
+
+        // Initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!videoId) {
+                showError('No video ID provided');
+                return;
+            }
+            initializeTabs();
+            fetchVideoData();
+            initializeSaveButton();
+        });
+
+        // Updated Loading State Management
+        function showLoading(show) {
+            const loadingElement = document.getElementById('loading');
+            const segmentsContent = document.getElementById('segments');
+            const captionsContent = document.getElementById('captions');
+            
+            if (show) {
+                loadingElement.style.display = 'flex';
+                segmentsContent.style.display = 'none';
+                captionsContent.style.display = 'none';
+            } else {
+                loadingElement.style.display = 'none';
+                // Check which tab is active and show the appropriate content
+                const activeTab = document.querySelector('.tab.active');
+                if (activeTab) {
+                    const activeTabId = activeTab.dataset.tab;
+                    segmentsContent.style.display = activeTabId === 'segments' ? 'block' : 'none';
+                    captionsContent.style.display = activeTabId === 'captions' ? 'block' : 'none';
+                } else {
+                    // Default to segments if no tab is active
+                    segmentsContent.style.display = 'block';
+                    captionsContent.style.display = 'none';
+                }
+            }
+        }
+
+        // Updated Tab Management
+        function initializeTabs() {
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    // Remove active class from all tabs and content
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('.tab-content').forEach(c => {
+                        c.classList.remove('active');
+                        c.style.display = 'none';  // Hide all content
+                    });
+                    
+                    // Add active class to selected tab and show its content
+                    tab.classList.add('active');
+                    const content = document.getElementById(tab.dataset.tab);
+                    if (content) {
+                        content.classList.add('active');
+                        content.style.display = 'block';  // Show selected content
+                    }
+                });
+            });
+        }
+
+        // Data Fetching
+        async function fetchVideoData() {
+            try {
+                showLoading(true);
+                console.log('Fetching video data for ID:', videoId);
+
+                const response = await fetch(`/api/video-metadata/${videoId}`);
+
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch video data: ${response.statusText}`);
+                }
+
+                videoData = await response.json();
+                console.log('Received video data:', videoData);
+
+                if (!videoData || !videoData.segments) {
+                    throw new Error('Invalid video data received');
+                }
+
+                await initializeVideoPlayer();
+                renderContent();
+                showLoading(false);
+            } catch (error) {
+                console.error('Error fetching video data:', error);
+                showError('Failed to load video data: ' + error.message);
+                showLoading(false);
+            }
+        }
+
+        // Video Player Setup
+        async function initializeVideoPlayer() {
+            const videoPlayer = document.getElementById('videoPlayer');
+            if (!videoPlayer) return;
+
+            return new Promise((resolve, reject) => {
+                videoPlayer.src = `/generated_videos/video_${videoId}.mp4`;
+                videoPlayer.addEventListener('loadeddata', () => resolve());
+                videoPlayer.addEventListener('error', () => reject(new Error('Failed to load video')));
+            });
+        }
+
+        // Content Rendering
+        function renderContent() {
+            const segmentsDiv = document.getElementById('segments');
+            const captionsDiv = document.getElementById('captions');
+
+            if (segmentsDiv) {
+                segmentsDiv.innerHTML = renderSegmentsContent();
+                initializeSegmentListeners();
+            }
+
+            if (captionsDiv) {
+                captionsDiv.innerHTML = renderCaptionsContent();
+                initializeCaptionListeners();
+            }
+        }
+
+        function renderSegmentsContent() {
+            if (!videoData.segments || !Array.isArray(videoData.segments)) {
+                return '<div class="error">No segments found</div>';
+            }
+
+            return `
+                <div class="segments-container">
+                    ${videoData.segments.map((segment, index) => {
+                        const imagePath = segment.imagePath || `/images/image_${videoId}_${index + 1}.png`;
+                        
+                        return `
+                            <div class="segment" data-index="${index}">
+                                <div class="segment-header">
+                                    <div class="segment-number">Segment ${index + 1}</div>
+                                    <div class="segment-duration">Duration: 2 seconds</div>
+                                </div>
+                                
+                                <div class="segment-text">
+                                    <strong>Text in this segment:</strong><br>
+                                    ${segment.text || 'No text available'}
+                                </div>
+
+                                <div class="segment-image-container">
+                                    <img src="${imagePath}" alt="Segment ${index + 1}" class="segment-image"
+                                        onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22300%22 height=%22200%22><rect width=%22100%%22 height=%22100%%22 fill=%22%23eee%22/><text x=%2250%%22 y=%2250%%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 font-family=%22Arial%22 fill=%22%23999%22>Image not found</text></svg>'">
+                                </div>
+
+                                <div class="segment-controls">
+                                    <div class="input-group">
+                                        <label>Image Prompt:</label>
+                                        <div class="prompt-container">${segment.prompt || ''}</div>
+                                        <textarea class="prompt-editor">${segment.prompt || ''}</textarea>
+                                        <button class="button button-secondary edit-prompt-btn">Edit Prompt</button>
+                                    </div>
+                                    
+                                    <div class="input-group">
+                                        <label>Transition:</label>
+                                        <select class="transition-select">
+                                            ${getTransitionOptions(segment.transition)}
+                                        </select>
+                                    </div>
+
+                                    <div class="button-group">
+                                        <input type="file" class="image-upload" accept="image/*" style="display: none;">
+                                        <button class="button button-secondary upload-image-btn">
+                                            Upload New Image
+                                        </button>
+                                        <button class="button button-primary preview-segment-btn">
+                                            Preview Segment
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                </div>
+            `;
+        }
+
+        function renderCaptionsContent() {
+            // Look for captions in segments instead of phrases
+            if (!videoData.segments || !Array.isArray(videoData.segments)) {
+                return '<div class="error">No segments found</div>';
+            }
+
+            return videoData.segments.map((segment, index) => {
+                return `
+                    <div class="caption" data-index="${index}">
+                        <div class="caption-timing">
+                            <span>Segment ${index + 1}</span>
+                        </div>
+                        <div class="caption-content">
+                            <div class="caption-text">${segment.text || ''}</div>
+                            <div class="caption-controls">
+                                <div class="input-group">
+                                    <label>Style:</label>
+                                    <select class="caption-style-select">
+                                        ${getCaptionStyleOptions(videoData.caption_style)}
+                                    </select>
+                                </div>
+                                <button class="button button-secondary preview-btn">Preview</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Utility Functions
+        function getTransitionOptions(selected) {
+            const transitions = [
+                'fade', 'wipe', 'zoom blend', 'rotate fade',
+                'circle reveal', 'spin', 'reveal zoom', 'zoom wipe'
+            ];
+            
+            return transitions.map(t =>
+                `<option value="${t}" ${t === (selected || 'fade') ? 'selected' : ''}>${t}</option>`
+            ).join('');
+        }
+
+        function getCaptionStyleOptions(selected) {
+            const styles = [
+                'default', 'karaoke', 'typewriter', 'glow_effect',
+                'fade_box', 'bounce_in', 'enlarge'
+            ];
+            
+            return styles.map(s =>
+                `<option value="${s}" ${s === (selected || 'default') ? 'selected' : ''}>${s}</option>`
+            ).join('');
+        }
+
+        function formatTime(seconds) {
+            if (typeof seconds !== 'number' || isNaN(seconds)) {
+                return '0:00.00';
+            }
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 100);
+            return `${mins}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+        }
+
+        // Image Upload Handling
+        async function handleImageUpload(index, file) {
+            try {
+                showMessage('info', 'Uploading image...');
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch(`/api/upload-segment-image/${videoId}/${index}`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to upload image');
+                }
+                
+                const result = await response.json();
+                
+                // Update the image in the UI
+                const img = document.querySelectorAll('.segment-image')[index];
+                if (img) {
+                    img.src = `${result.path}?t=${Date.now()}`; // Add timestamp to prevent caching
+                }
+                
+                showMessage('success', 'Image uploaded successfully');
+            } catch (error) {
+                console.error('Error uploading image:', error);
+                showMessage('error', 'Failed to upload image: ' + error.message);
+            }
+        }
+
+        function previewCaption(index) {
+            if (!videoData.segments || !videoData.segments[index]) {
+                showError('Caption data not found');
+                return;
+            }
+
+            const segment = videoData.segments[index];
+            const videoPlayer = document.getElementById('videoPlayer');
+            
+            if (!videoPlayer) {
+                showError('Video player not found');
+                return;
+            }
+
+            // Set video to segment start time (each segment is roughly 2 seconds)
+            const startTime = index * 2;
+            videoPlayer.currentTime = startTime;
+            
+            // Play for approximate segment duration
+            videoPlayer.play()
+                .catch(error => {
+                    console.error('Error playing video:', error);
+                    showError('Failed to play video');
+                });
+            
+            // Stop after 2 seconds
+            setTimeout(() => {
+                videoPlayer.pause();
+            }, 2000);
+        }
+        // Save Changes
+        function initializeSaveButton() {
+            document.getElementById('saveChanges').addEventListener('click', saveChanges);
+        }
+
+
+        async function saveChanges() {
+            try {
+                showMessage('info', 'Saving changes...');
+                
+                // Get segment data with both current and old prompts
+                const segments = videoData.segments.map((originalSegment, index) => {
+                    const segmentElement = document.querySelector(`.segment[data-index="${index}"]`);
+                    const newPrompt = segmentElement.querySelector('.prompt-editor').value || 
+                                    segmentElement.querySelector('.prompt-container').textContent;
+                    
+                    return {
+                        ...originalSegment,
+                        old_prompt: originalSegment.prompt, // Original prompt
+                        prompt: newPrompt,                  // New prompt
+                        transition: segmentElement.querySelector('.transition-select').value
+                    };
+                });
+
+                console.log('Saving segments:', segments);
+
+                // Save segments
+                const segmentResponse = await fetch('/api/update-video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        videoId, 
+                        segments 
+                    })
+                });
+
+                if (!segmentResponse.ok) {
+                    const errorData = await segmentResponse.json();
+                    throw new Error(errorData.detail || 'Server error');
+                }
+
+                showMessage('info', 'Regenerating video - this may take a minute...');
+                
+                // Wait for regeneration
+                let attempts = 0;
+                const maxAttempts = 120; // 2 minute timeout
+                
+                const checkVideo = async () => {
+                    if (attempts >= maxAttempts) {
+                        throw new Error('Video regeneration timed out');
+                    }
+                    
+                    try {
+                        const response = await fetch(`/generated_videos/video_${videoId}.mp4?t=${Date.now()}`, {
+                            method: 'HEAD'
+                        });
+                        
+                        if (response.ok) {
+                            // Reload metadata to get updated info
+                            await fetchVideoData();
+                            
+                            // Update video player
+                            const videoPlayer = document.getElementById('videoPlayer');
+                            videoPlayer.src = `/generated_videos/video_${videoId}.mp4?t=${Date.now()}`;
+                            
+                            showMessage('success', 'Changes saved and video updated!');
+                        } else {
+                            attempts++;
+                            setTimeout(checkVideo, 1000);
+                        }
+                    } catch (error) {
+                        attempts++;
+                        setTimeout(checkVideo, 1000);
+                    }
+                };
+                
+                checkVideo();
+
+            } catch (error) {
+                console.error('Save error:', error);
+                showMessage('error', `Failed to save changes: ${error.message}`);
+            }
+        }
+        function showMessage(type, message) {
+            const elements = {
+                error: document.getElementById('error'),
+                success: document.getElementById('success'),
+                info: document.getElementById('success')
+            };
+
+            // Hide all messages first
+            Object.values(elements).forEach(el => {
+                if (el) el.style.display = 'none';
+            });
+
+            // Show the relevant message
+            const element = elements[type];
+            if (element) {
+                element.textContent = message;
+                element.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    element.style.display = 'none';
+                }, 5000);
+            }
+        }
+        // Add this function
+        function initializeCaptionListeners() {
+            document.querySelectorAll('.preview-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const caption = button.closest('.caption');
+                    if (caption) {
+                        const index = parseInt(caption.dataset.index);
+                        previewCaption(index);
+                    }
+                });
+            });
+        }
+        function initializeSegmentListeners() {
+            // Handle prompt editing
+            document.querySelectorAll('.edit-prompt-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const segment = button.closest('.segment');
+                    const promptContainer = segment.querySelector('.prompt-container');
+                    const promptEditor = segment.querySelector('.prompt-editor');
+                    
+                    if (promptEditor.style.display === 'none') {
+                        // Switch to edit mode
+                        promptContainer.style.display = 'none';
+                        promptEditor.style.display = 'block';
+                        button.textContent = 'Save Prompt';
+                    } else {
+                        // Save changes
+                        promptContainer.textContent = promptEditor.value;
+                        promptContainer.style.display = 'block';
+                        promptEditor.style.display = 'none';
+                        button.textContent = 'Edit Prompt';
+                    }
+                });
+            });
+
+            // Handle image upload
+            document.querySelectorAll('.upload-image-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const segment = button.closest('.segment');
+                    const fileInput = segment.querySelector('.image-upload');
+                    fileInput.click();
+                });
+            });
+
+            // Handle file selection
+            document.querySelectorAll('.image-upload').forEach(input => {
+                input.addEventListener('change', (event) => {
+                    const segment = input.closest('.segment');
+                    if (segment && event.target.files.length > 0) {
+                        const index = parseInt(segment.dataset.index);
+                        handleImageUpload(index, event.target.files[0]);
+                    }
+                });
+            });
+
+            // Handle segment preview
+            document.querySelectorAll('.preview-segment-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const segment = button.closest('.segment');
+                    const index = parseInt(segment.dataset.index);
+                    previewSegment(index);
+                });
+            });
+        }
+
+        function previewSegment(index) {
+            const videoPlayer = document.getElementById('videoPlayer');
+            if (!videoPlayer) return;
+
+            // Calculate segment time based on 2-second duration
+            const startTime = index * 2;
+            videoPlayer.currentTime = startTime;
+
+            // Play for 2 seconds
+            videoPlayer.play();
+            setTimeout(() => {
+                videoPlayer.pause();
+            }, 2000);
+        }
+    // Handle file inputs
+        document.querySelectorAll('.image-upload').forEach(input => {
+                input.addEventListener('change', (event) => {
+                    const segment = input.closest('.segment');
+                    if (segment && event.target.files.length > 0) {
+                        const index = parseInt(segment.dataset.index);
+                        handleImageUpload(index, event.target.files[0]);
+                    }
+                });
+            }); 
+        
+        function showError(message) {
+            showMessage('error', message);
+        }
+
+        // Window resize handler for responsive layout
+        window.addEventListener('resize', () => {
+            const videoPlayer = document.getElementById('videoPlayer');
+            if (videoPlayer) {
+                videoPlayer.style.height = 'auto';
+            }
+        });
+
+        // Prevent form submission on enter key
+        document.addEventListener('keypress', function(event) {
+            if (event.key === 'Enter' && event.target.tagName !== 'TEXTAREA') {
+                event.preventDefault();
+            }
+        });
+    </script>
+</body>
+</html>
