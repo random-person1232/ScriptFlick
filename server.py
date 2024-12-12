@@ -56,7 +56,6 @@ app.add_middleware(
 
 # Static directory mounts
 app.mount("/generated_videos", StaticFiles(directory="generated_videos"), name="generated_videos")
-app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/images", StaticFiles(directory="images"), name="images")
 app.mount("/videos", StaticFiles(directory="videos"), name="videos")
 app.mount("/audio", StaticFiles(directory="audio"), name="audio")
