@@ -1,0 +1,14 @@
+# Ignore generated content
+images/*
+videos/*
+audio/*
+emojis/*
+generated_videos/*
+
+# Don't ignore static folder since it contains website assets
+# !static/
+
+# Ignore Python cache files
+__pycache__/
+*.pyc
+.env
