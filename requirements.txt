@@ -16,3 +16,10 @@ starlette>=0.32.0
 numpy>=1.26.2
 uvicorn>=0.25.0
 captacity
+moviepy>=1.0.3
+decorator>=4.0.2
+imageio>=2.5.0
+imageio-ffmpeg>=0.4.3
+tqdm>=4.11.2
+numpy>=1.17.3
+
