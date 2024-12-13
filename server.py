@@ -25,9 +25,9 @@ logger = logging.getLogger(__name__)
 # Create necessary directories if they don't exist
 os.makedirs("generated_videos", exist_ok=True)
 os.makedirs("generated_videos/thumbnails", exist_ok=True)
-os.makedirs("generated_videos/images", exist_ok=True)
-os.makedirs("generated_videos/videos", exist_ok=True)
-os.makedirs("generated_videos/audio", exist_ok=True)
+os.makedirs("images", exist_ok=True)
+os.makedirs("videos", exist_ok=True)
+os.makedirs("audio", exist_ok=True)
 # Create a connection manager
 class ConnectionManager:
     def __init__(self):
