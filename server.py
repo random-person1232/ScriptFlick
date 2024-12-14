@@ -18,6 +18,9 @@ from typing import Dict, List
 import json
 import tempfile
 from datetime import datetime
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
