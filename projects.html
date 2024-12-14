@@ -23,6 +23,44 @@
             width: auto;
             object-fit: contain;
         }
+
+        .progress-bar {
+            width: 100%;
+            height: 4px;
+            background-color: #e5e7eb;
+            border-radius: 2px;
+            margin-top: 8px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            background-color: #3b82f6;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-processing {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+
+        .status-complete {
+            background-color: #d1fae5;
+            color: #065f46;
+        }
+
+        .status-error {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
     </style>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -67,6 +105,90 @@
     </main>
 
     <script>
+        // WebSocket Manager Class
+        class WebSocketManager {
+            constructor() {
+                this.connections = new Map();
+                this.reconnectAttempts = new Map();
+                this.maxReconnectAttempts = 5;
+            }
+
+            connect(taskId) {
+                if (this.connections.has(taskId)) {
+                    return;
+                }
+
+                const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const socket = new WebSocket(`${wsProtocol}//${window.location.host}/ws/${taskId}`);
+                this.connections.set(taskId, socket);
+                this.reconnectAttempts.set(taskId, 0);
+
+                socket.onmessage = (event) => {
+                    const data = JSON.parse(event.data);
+                    this.updateProjectStatus(taskId, data);
+                };
+
+                socket.onclose = () => {
+                    console.log(`WebSocket connection closed for task ${taskId}`);
+                    this.handleReconnect(taskId);
+                };
+
+                socket.onerror = (error) => {
+                    console.error(`WebSocket error for task ${taskId}:`, error);
+                };
+            }
+
+            handleReconnect(taskId) {
+                const attempts = this.reconnectAttempts.get(taskId) || 0;
+                if (attempts < this.maxReconnectAttempts) {
+                    this.reconnectAttempts.set(taskId, attempts + 1);
+                    setTimeout(() => {
+                        console.log(`Attempting to reconnect for task ${taskId}`);
+                        this.connect(taskId);
+                    }, 1000 * Math.pow(2, attempts)); // Exponential backoff
+                }
+            }
+
+            updateProjectStatus(taskId, data) {
+                const projectElement = document.querySelector(`[data-project-id="${taskId}"]`);
+                if (projectElement) {
+                    const statusBadge = projectElement.querySelector('.status-badge');
+                    const progressBar = projectElement.querySelector('.progress-bar-fill');
+                    
+                    if (statusBadge) {
+                        statusBadge.textContent = data.status;
+                        statusBadge.className = `status-badge status-${data.status.toLowerCase()}`;
+                    }
+                    
+                    if (progressBar && data.progress !== undefined) {
+                        progressBar.style.width = `${data.progress}%`;
+                    }
+
+                    if (data.status === 'complete') {
+                        this.disconnect(taskId);
+                        location.reload();
+                    }
+                }
+            }
+
+            disconnect(taskId) {
+                const socket = this.connections.get(taskId);
+                if (socket) {
+                    socket.close();
+                    this.connections.delete(taskId);
+                    this.reconnectAttempts.delete(taskId);
+                }
+            }
+
+            disconnectAll() {
+                for (const taskId of this.connections.keys()) {
+                    this.disconnect(taskId);
+                }
+            }
+        }
+
+        const wsManager = new WebSocketManager();
+
         // Function to load projects
         async function loadProjects() {
             try {
@@ -87,14 +209,16 @@
 
                 projectsGrid.classList.remove('hidden');
                 emptyState.classList.add('hidden');
-
-                // Clear existing content
                 projectsGrid.innerHTML = '';
 
-                // Add each project
                 projects.forEach(project => {
                     const projectElement = document.createElement('div');
                     projectElement.className = 'bg-white rounded-lg shadow-md overflow-hidden';
+                    projectElement.dataset.projectId = project.id;
+                    
+                    const status = project.status || 'complete';
+                    const progress = project.progress || 100;
+
                     projectElement.innerHTML = `
                         <div class="video-container">
                             <video controls>
@@ -103,8 +227,14 @@
                             </video>
                         </div>
                         <div class="p-4">
-                            <h3 class="text-lg font-semibold text-gray-900 truncate">${project.title}</h3>
+                            <div class="flex justify-between items-center">
+                                <h3 class="text-lg font-semibold text-gray-900 truncate">${project.title}</h3>
+                                <span class="status-badge status-${status.toLowerCase()}">${status}</span>
+                            </div>
                             <p class="text-sm text-gray-500 mt-1">Created ${new Date(project.created_at).toLocaleDateString()}</p>
+                            <div class="progress-bar">
+                                <div class="progress-bar-fill" style="width: ${progress}%"></div>
+                            </div>
                             <div class="mt-4 flex justify-between items-center">
                                 <div class="flex gap-2">
                                     <button onclick="editProject('${project.id}')" 
@@ -123,7 +253,13 @@
                             </div>
                         </div>
                     `;
+                    
                     projectsGrid.appendChild(projectElement);
+
+                    // Connect WebSocket for processing projects
+                    if (status === 'processing') {
+                        wsManager.connect(project.id);
+                    }
                 });
             } catch (error) {
                 console.error('Error loading projects:', error);
@@ -165,6 +301,7 @@
             }
 
             try {
+                wsManager.disconnect(projectId);
                 const response = await fetch(`/api/projects/${projectId}`, {
                     method: 'DELETE'
                 });
@@ -182,6 +319,11 @@
 
         // Load projects when page loads
         document.addEventListener('DOMContentLoaded', loadProjects);
+
+        // Clean up WebSocket connections when leaving the page
+        window.addEventListener('beforeunload', () => {
+            wsManager.disconnectAll();
+        });
     </script>
 </body>
 </html>
