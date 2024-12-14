@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pricing</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+        }
+        body {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            justify-content: center;
+            align-items: center;
+            background-color: #f8f9fa;
+        }
+        .pricing-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 50px;
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+        .pricing-header {
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        .coin-slider-container {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        .coin-slider-container label {
+            font-weight: bold;
+            display: block;
+            margin-bottom: 10px;
+        }
+        .coin-slider {
+            width: 100%;
+        }
+        .plan-buttons {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        .plan-button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 0 10px;
+        }
+        .plan-button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+    <script>
+        function updateSlider(maxCoins, minCoins = 0) {
+            const slider = document.getElementById('coinSlider');
+            slider.max = maxCoins;
+            slider.min = minCoins;
+            slider.value = minCoins;
+            document.getElementById('coinValue').innerText = `${minCoins} coins`;
+        }
+        function onSliderChange(value) {
+            document.getElementById('coinValue').innerText = `${value} coins`;
+        }
+    </script>
+</head>
+<body>
+    <div class="pricing-container">
+        <div class="pricing-header">One 60 seconds video is 100 coins</div>
+        <div class="coin-slider-container">
+            <label for="coinSlider">Select number of coins:</label>
+            <input type="range" id="coinSlider" class="coin-slider" min="0" max="2000" value="0" oninput="onSliderChange(this.value)">
+            <div id="coinValue">0 coins</div>
+        </div>
+        <div class="plan-buttons">
+            <button class="plan-button" onclick="updateSlider(2000)">Small Plan</button>
+            <button class="plan-button" onclick="updateSlider(5000, 2000)">Medium Plan</button>
+            <button class="plan-button" onclick="updateSlider(10000, 5000)">Large Plan</button>
+        </div>
+    </div>
+</body>
+</html>
