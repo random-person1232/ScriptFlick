@@ -69,4 +69,4 @@ const CaptionStyleSelector = () => {
     );
 };
 
-export default CaptionStyleSelector;
+export { CaptionStyleSelector as default };
