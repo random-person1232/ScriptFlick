@@ -1,3 +1,5 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.1.0+cpu
 numpy==1.26.2
 decorator==4.4.2
 imageio==2.31.1
@@ -28,3 +30,5 @@ Jinja2
 python-jose[cryptography]
 passlib[bcrypt]
 openai-whisper
+emoji
+ffmpeg-python
