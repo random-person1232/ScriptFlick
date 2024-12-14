@@ -3,15 +3,18 @@ services:
     name: your-app-name
     env: python
     buildCommand: |
+      apt-get update && apt-get install -y ffmpeg
       pip install -r requirements.txt
-      mkdir -p static/components
-      cp CaptionStyleSelector.js static/components/
-      cp StyleSelector.js static/components/
+      mkdir -p /opt/render/project/src/static/components
+      cp CaptionStyleSelector.js /opt/render/project/src/static/components/
+      cp StyleSelector.js /opt/render/project/src/static/components/
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.9
-    staticPublishPath: ./static # This ensures static files are properly served
+      - key: RENDER
+        value: "true"
+    staticPublishPath: ./static
     routes:
       - type: rewrite
         source: /static/*
