@@ -1,10 +1,25 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from pathlib import Path
+from fastapi.templating import Jinja2Templates
+from pydantic import BaseModel
+import asyncio
 import os
 import logging
+from fastapi import UploadFile
+import shutil
+from main import main
+from status_manager import video_status
+from starlette.responses import JSONResponse
+from starlette.background import BackgroundTask
+from contextlib import asynccontextmanager
+from typing import Dict, List
+import json
+import tempfile
+from datetime import datetime
+import pathlib
+
 
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
@@ -188,7 +203,7 @@ async def get_video_metadata(video_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/regenerate-segment")
-async def regenerate_segment(request: Dict):
+async def regenerate_segment(request: dict):  # Changed Dict to dict
     """Regenerate a specific segment of the video with new prompt"""
     try:
         video_id = request.get('videoId')
