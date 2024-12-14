@@ -65,14 +65,14 @@
                 Your browser does not support the video tag.
             </video>
             <div class="flex space-x-4">
-                <a
+                
                     id="downloadButton"
                     class="flex-1 text-center bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
                     download=""
                 >
                     Download Video
                 </a>
-                <a
+                
                     id="editButton"
                     class="flex-1 text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
                     href="#"
@@ -111,6 +111,7 @@
                 };
 
                 let currentTaskId = null;
+                let activeWebSocket = null;
 
                 // Helper functions
                 const showError = (message) => {
@@ -145,7 +146,61 @@
                     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
                 };
 
-                // Status polling function
+                // WebSocket connection function
+                const connectWebSocket = (taskId) => {
+                    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                    const ws = new WebSocket(`${protocol}//${window.location.host}/ws/${taskId}`);
+                    
+                    const startTime = Date.now();
+                    const updateElapsedTime = () => {
+                        document.getElementById('elapsed-time').textContent = 
+                            `Time: ${formatTime((Date.now() - startTime) / 1000)}`;
+                    };
+                    const timeInterval = setInterval(updateElapsedTime, 1000);
+
+                    ws.onopen = () => {
+                        console.log('WebSocket connected');
+                        activeWebSocket = ws;
+                    };
+
+                    ws.onmessage = (event) => {
+                        const data = JSON.parse(event.data);
+                        console.log('WebSocket message received:', data);
+                        
+                        updateProgress(data.progress, data.current_step, data.message);
+                        
+                        if (data.status === 'complete') {
+                            clearInterval(timeInterval);
+                            hideStatus();
+                            document.getElementById('videoContainer').classList.remove('hidden');
+                            document.getElementById('videoPlayer').src = `/generated_videos/video_${taskId}.mp4`;
+                            document.getElementById('downloadButton').href = `/generated_videos/video_${taskId}.mp4`;
+                            document.getElementById('editButton').href = `/edit?video=${taskId}`;
+                            ws.close();
+                        } else if (data.status === 'error') {
+                            clearInterval(timeInterval);
+                            hideStatus();
+                            showError(data.error || 'An error occurred during video creation');
+                            ws.close();
+                        }
+                    };
+
+                    ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        clearInterval(timeInterval);
+                        startStatusPolling(taskId);
+                    };
+
+                    ws.onclose = () => {
+                        console.log('WebSocket connection closed');
+                        clearInterval(timeInterval);
+                        activeWebSocket = null;
+                    };
+
+                    return ws;
+                };
+
+                // Fallback polling function
                 const startStatusPolling = async (taskId) => {
                     const startTime = Date.now();
                     currentTaskId = taskId;
@@ -214,7 +269,8 @@
 
                         const data = await response.json();
                         if (data.status === 'started') {
-                            startStatusPolling(data.task_id);
+                            connectWebSocket(data.task_id);
+                            currentTaskId = data.task_id;
                         } else {
                             throw new Error('Invalid response from server');
                         }
@@ -224,7 +280,7 @@
                     }
                 });
 
-                // Reset UI when starting new video
+                // Reset UI function
                 const resetUI = () => {
                     document.getElementById('videoContainer').classList.add('hidden');
                     document.getElementById('error').classList.add('hidden');
@@ -233,6 +289,11 @@
                     document.getElementById('progress-percentage').textContent = '0%';
                     document.getElementById('elapsed-time').textContent = 'Time: 0:00';
                     document.getElementById('statusText').textContent = 'Initializing...';
+                    
+                    if (activeWebSocket) {
+                        activeWebSocket.close();
+                        activeWebSocket = null;
+                    }
                 };
 
                 // Reset button for testing
