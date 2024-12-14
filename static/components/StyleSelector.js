@@ -71,4 +71,4 @@ const StyleSelector = () => {
     );
 };
 
-export default StyleSelector;
+export { StyleSelector as default };
