@@ -32,3 +32,4 @@ passlib[bcrypt]
 openai-whisper
 emoji
 ffmpeg-python
+websockets
