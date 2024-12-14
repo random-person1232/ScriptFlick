@@ -57,6 +57,8 @@ app.add_middleware(
 
 
 # Static directory mounts
+
+app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
 app.mount("/generated_videos", StaticFiles(directory="generated_videos"), name="generated_videos")
 app.mount("/images", StaticFiles(directory="images"), name="images")
 app.mount("/videos", StaticFiles(directory="videos"), name="videos")
