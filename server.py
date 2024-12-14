@@ -20,7 +20,7 @@ import tempfile
 from datetime import datetime
 import pathlib
 
-
+BASE_DIR = pathlib.Path(__file__).parent.absolute()
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
