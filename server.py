@@ -1,51 +1,20 @@
-from fastapi import FastAPI, HTTPException, BackgroundTasks
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
-import asyncio
+from pathlib import Path
 import os
 import logging
-from fastapi import UploadFile
-import shutil
-from main import main
-from status_manager import video_status
-from starlette.responses import JSONResponse
-from starlette.background import BackgroundTask
-from contextlib import asynccontextmanager
-from typing import Dict, List
-import json
-import tempfile
-from datetime import datetime
-from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parent
-
+# Initialize logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Create necessary directories if they don't exist
-os.makedirs("generated_videos", exist_ok=True)
-os.makedirs("generated_videos/thumbnails", exist_ok=True)
-os.makedirs("images", exist_ok=True)
-os.makedirs("videos", exist_ok=True)
-os.makedirs("audio", exist_ok=True)
-# Create a connection manager
-class ConnectionManager:
-    def __init__(self):
-        self.active_connections = set()
-
-    async def connect(self, task_id):
-        self.active_connections.add(task_id)
-
-    async def disconnect(self, task_id):
-        self.active_connections.discard(task_id)
-
-    def is_connected(self, task_id):
-        return task_id in self.active_connections
-
-connection_manager = ConnectionManager()
+# Get the absolute path of the current directory
+if os.environ.get('RENDER'):
+    BASE_DIR = Path('/opt/render/project/src')
+else:
+    BASE_DIR = Path(__file__).resolve().parent
 
 app = FastAPI()
 
@@ -58,38 +27,54 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Create necessary directories
+DIRS = [
+    "generated_videos",
+    "generated_videos/thumbnails",
+    "images",
+    "videos",
+    "audio",
+    "static",
+    "static/components"
+]
 
-# Static directory mounts
+for dir_name in DIRS:
+    os.makedirs(BASE_DIR / dir_name, exist_ok=True)
 
-app.mount("/static", StaticFiles(directory=os.path.join(BASE_DIR, "static")), name="static")
-app.mount("/generated_videos", StaticFiles(directory="generated_videos"), name="generated_videos")
-app.mount("/images", StaticFiles(directory="images"), name="images")
-app.mount("/videos", StaticFiles(directory="videos"), name="videos")
-app.mount("/audio", StaticFiles(directory="audio"), name="audio")
-class VideoRequest(BaseModel):
-    text: str
-    caption_style: str = "karaoke"
-    image_style: str = "default" 
+# Mount static directories
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+app.mount("/generated_videos", StaticFiles(directory=str(BASE_DIR / "generated_videos")), name="generated_videos")
+app.mount("/images", StaticFiles(directory=str(BASE_DIR / "images")), name="images")
+app.mount("/videos", StaticFiles(directory=str(BASE_DIR / "videos")), name="videos")
+app.mount("/audio", StaticFiles(directory=str(BASE_DIR / "audio")), name="audio")
 
-class Project(BaseModel):
-    id: str
-    title: str
-    created_at: str
-
-def serve_html(filename: str) -> HTMLResponse:
+async def serve_html(filename: str) -> HTMLResponse:
     """Helper function to serve HTML files"""
     try:
-        with open(filename, "r", encoding="utf-8") as f:
+        file_path = BASE_DIR / filename
+        logger.info(f"Attempting to serve {file_path}")
+        
+        if not file_path.exists():
+            logger.error(f"File not found: {file_path}")
+            raise HTTPException(status_code=404, detail=f"File {filename} not found")
+            
+        with open(file_path, "r", encoding="utf-8") as f:
             content = f.read()
             return HTMLResponse(content=content)
-    except FileNotFoundError:
-        raise HTTPException(status_code=404, detail=f"File {filename} not found")
+    except Exception as e:
+        logger.error(f"Error serving {filename}: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/")
-async def get_home():
+@app.head("/")
+async def get_home(request: Request):
     """Serve the index page"""
-    return serve_html("index.html")
+    return await serve_html("index.html")
 
+@app.get("/health")
+async def health_check():
+    """Health check endpoint"""
+    return {"status": "healthy"}
 @app.get("/create")
 async def get_create():
     """Serve the create page"""
