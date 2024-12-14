@@ -1,12 +1,14 @@
 from fastapi import FastAPI, HTTPException, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse
+from fastapi import FastAPI, HTTPException, BackgroundTasks, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 import asyncio
 import os
 import logging
+from fastapi import WebSocket 
 from fastapi import UploadFile
 import shutil
 from main import main
@@ -18,9 +20,10 @@ from typing import Dict, List
 import json
 import tempfile
 from datetime import datetime
-import pathlib
-
-BASE_DIR = pathlib.Path(__file__).parent.absolute()
+from pathlib import Path
+from main import regenerate_video  # Add this at the top with other imports
+from connection_manager import connection_manager
+BASE_DIR = Path(__file__).parent.absolute()
 # Initialize logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -32,7 +35,10 @@ else:
     BASE_DIR = Path(__file__).resolve().parent
 
 app = FastAPI()
-
+class VideoRequest(BaseModel):
+    text: str
+    caption_style: str
+    image_style: str
 # Enable CORS
 app.add_middleware(
     CORSMiddleware,
@@ -93,37 +99,45 @@ async def health_check():
 @app.get("/create")
 async def get_create():
     """Serve the create page"""
-    return serve_html("create.html")
+    return await serve_html("create.html")
 
 @app.get("/create.html")
 async def get_create_html():
     """Alternative route for create.html"""
-    return serve_html("create.html")
-
+    return await serve_html("create.html")  # Add await here
 @app.get("/projects")
 async def get_projects():
     """Serve the projects page"""
-    return serve_html("projects.html")
-
+    return await serve_html("projects.html")
+@app.websocket("/ws/{task_id}")
+async def websocket_endpoint(websocket: WebSocket, task_id: str):
+    await connection_manager.connect(task_id, websocket)
+    try:
+        while True:
+            await websocket.receive_text()  # Keep connection alive
+    except Exception as e:
+        logger.error(f"WebSocket error: {str(e)}")
+    finally:
+        await connection_manager.disconnect(task_id)
 @app.get("/projects.html")
 async def get_projects_html():
     """Alternative route for projects.html"""
-    return serve_html("projects.html")
+    return await serve_html("projects.html")
 
 @app.get("/pricing")
 async def get_pricing():
     """Serve the pricing page"""
-    return serve_html("pricing.html")
+    return await serve_html("pricing.html")
 
 @app.get("/pricing.html")
 async def get_pricing_html():
     """Alternative route for pricing.html"""
-    return serve_html("pricing.html")
+    return await serve_html("pricing.html")
 
 # Serve static files like logo.png
 @app.get("/logo.png")
 async def get_logo():
-    return FileResponse("static/logo.png")
+    return await FileResponse("static/logo.png")
 
 def save_project_metadata(project_id: str, title: str):
     """Save project metadata to a JSON file"""
@@ -176,12 +190,12 @@ async def get_status():
 @app.get("/edit")
 async def get_edit():
     """Serve the edit page"""
-    return serve_html("edit.html")
+    return await serve_html("edit.html")
 
 @app.get("/edit.html")
 async def get_edit_html():
     """Alternative route for edit.html"""
-    return serve_html("edit.html")
+    return await serve_html("edit.html")
 
 @app.get("/api/video-metadata/{video_id}")
 async def get_video_metadata(video_id: str):
@@ -327,33 +341,6 @@ async def update_captions(request: Dict):
     except Exception as e:
         logger.error(f"Error updating captions: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-@app.post("/api/update-captions")
-async def update_captions_bulk(request: Dict):
-    """Update multiple captions at once"""
-    try:
-        video_id = request.get('videoId')
-        captions = request.get('captions', [])
-        
-        metadata_path = f"generated_videos/metadata_{video_id}.json"
-        if not os.path.exists(metadata_path):
-            raise HTTPException(status_code=404, detail="Video metadata not found")
-            
-        with open(metadata_path, 'r') as f:
-            metadata = json.load(f)
-            
-        # Update all captions
-        metadata['phrases'] = captions
-            
-        # Save metadata
-        with open(metadata_path, 'w') as f:
-            json.dump(metadata, f)
-            
-        return {"status": "success"}
-        
-    except Exception as e:
-        logger.error(f"Error updating captions: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-from main import regenerate_video  # Add this at the top with other imports
 
 @app.post("/api/update-video")
 async def update_video(request: Dict):
@@ -410,9 +397,11 @@ async def update_video(request: Dict):
 # server.py
 async def create_video_task(text: str, caption_style: str, image_style: str, task_id: str):
     try:
+        # Now connection_manager is properly imported
         await connection_manager.connect(task_id)
         video_status.status = "processing"
         video_status.progress = 0
+        
         
         # Increase timeout to 1 hour
         async with asyncio.timeout(3600):  # 60 minutes timeout
@@ -591,12 +580,14 @@ async def get_projects_list():
         logger.error(f"Error getting projects: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to load projects: {str(e)}")
 if __name__ == "__main__":
-        import uvicorn
-        uvicorn.run(
-            app,
-            host="127.0.0.1",
-            port=8000,
-            timeout_keep_alive=3000,
-            limit_concurrency=500,
-            backlog=1000
-        )
+    import uvicorn
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run(
+        app,
+        host="0.0.0.0",  # Change from 127.0.0.1 for Render
+        port=port,       # Use PORT from environment
+        timeout_keep_alive=3000,
+        limit_concurrency=500,
+        backlog=1000
+    )
+    
