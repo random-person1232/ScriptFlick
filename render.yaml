@@ -3,17 +3,32 @@ services:
     name: your-app-name
     env: python
     buildCommand: |
-      apt-get update && apt-get install -y ffmpeg
+      # Install system dependencies
+      apt-get update && apt-get install -y $(cat packages.txt)
+      # Install Python dependencies
       pip install -r requirements.txt
+      # Download NLTK data
+      python -m nltk.downloader punkt averaged_perceptron_tagger wordnet stopwords
+      # Create necessary directories
       mkdir -p /opt/render/project/src/static/components
+      mkdir -p /opt/render/project/src/generated_videos
+      mkdir -p /opt/render/project/src/images
+      mkdir -p /opt/render/project/src/videos
+      mkdir -p /opt/render/project/src/audio
+      mkdir -p /opt/render/project/src/emojis
+      # Copy static files
       cp CaptionStyleSelector.js /opt/render/project/src/static/components/
       cp StyleSelector.js /opt/render/project/src/static/components/
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.9
+      - key: PYTHONPATH
+        value: /opt/render/project/src
       - key: RENDER
         value: "true"
+      - key: NLTK_DATA
+        value: /opt/render/project/src/nltk_data
     staticPublishPath: ./static
     routes:
       - type: rewrite
@@ -23,3 +38,5 @@ services:
       name: static-storage
       mountPath: /opt/render/project/src/static
       sizeGB: 1
+    healthCheckPath: /
+    autoDeploy: true
