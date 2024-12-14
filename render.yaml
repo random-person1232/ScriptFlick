@@ -2,8 +2,21 @@ services:
   - type: web
     name: your-app-name
     env: python
-    buildCommand: pip install -r requirements.txt
+    buildCommand: |
+      pip install -r requirements.txt
+      mkdir -p static/components
+      cp CaptionStyleSelector.js static/components/
+      cp StyleSelector.js static/components/
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.9
+    staticPublishPath: ./static # This ensures static files are properly served
+    routes:
+      - type: rewrite
+        source: /static/*
+        destination: /static/$1
+    disk:
+      name: static-storage
+      mountPath: /opt/render/project/src/static
+      sizeGB: 1
