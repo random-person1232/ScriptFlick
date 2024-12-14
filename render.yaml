@@ -17,8 +17,12 @@ services:
       mkdir -p /opt/render/project/src/audio
       mkdir -p /opt/render/project/src/emojis
       # Copy static files
+      cp *.html /opt/render/project/src/
+      cp -r static/* /opt/render/project/src/static/
       cp CaptionStyleSelector.js /opt/render/project/src/static/components/
       cp StyleSelector.js /opt/render/project/src/static/components/
+      # Set permissions
+      chmod -R 755 /opt/render/project/src/static
     startCommand: uvicorn server:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
@@ -29,6 +33,7 @@ services:
         value: "true"
       - key: NLTK_DATA
         value: /opt/render/project/src/nltk_data
+    healthCheckPath: /health
     staticPublishPath: ./static
     routes:
       - type: rewrite
@@ -38,5 +43,3 @@ services:
       name: static-storage
       mountPath: /opt/render/project/src/static
       sizeGB: 1
-    healthCheckPath: /
-    autoDeploy: true
