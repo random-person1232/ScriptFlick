@@ -137,7 +137,7 @@ async def get_pricing_html():
 # Serve static files like logo.png
 @app.get("/logo.png")
 async def get_logo():
-    return await FileResponse("static/logo.png")
+    return FileResponse("static/logo.png")
 
 def save_project_metadata(project_id: str, title: str):
     """Save project metadata to a JSON file"""
