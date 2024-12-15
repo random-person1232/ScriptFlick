@@ -592,7 +592,7 @@ if __name__ == "__main__":
     port = int(os.environ.get("PORT", 8000))
     uvicorn.run(
         app,
-        host="127.0.0.1",  # Change from 127.0.0.1 for Render
+        host="0.0.0.0",  # Change from 127.0.0.1 for Render
         port=port,       # Use PORT from environment
         timeout_keep_alive=3000,
         limit_concurrency=500,
