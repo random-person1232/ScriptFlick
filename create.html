@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Video - ScriptFlick</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Base styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        /* Style selector styles */
+        .style-option {
+            display: none;
+        }
+
+        .style-label {
+            display: block;
+            padding: 1rem;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .style-option:checked + .style-label {
+            border-color: #2563eb;
+            background-color: #eff6ff;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .style-label:hover {
+            border-color: #93c5fd;
+            background-color: #f8fafc;
+        }
+
+        /* Progress bar */
+        .progress-container {
+            width: 100%;
+            background-color: #edf2f7;
+            border-radius: 9999px;
+            height: 1rem;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: #2563eb;
+            transition: width 0.3s ease;
+            border-radius: 9999px;
+        }
+
+        /* Loading spinner */
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner {
+            animation: spin 1s linear infinite;
+            border-bottom: 2px solid #2563eb;
+        }
+
+        /* Button states */
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Focus states */
+        button:focus, a:focus {
+            outline: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen py-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold mb-6 text-center">ScriptFlick Video Creator</h1>
+
+        <div class="space-y-6">
+            <!-- Story Input -->
+            <div class="space-y-4">
+                <label for="storyInput" class="block text-lg font-medium">Enter your story:</label>
+                <textarea
+                    id="storyInput"
+                    class="w-full h-40 p-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter your story here..."
+                ></textarea>
+            </div>
+
+            <div class="space-y-4">
+                <h3 class="text-lg font-medium">Choose Image Style</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                        <input type="radio" name="imageStyle" id="style-default" value="Default" class="style-option" checked>
+                        <label for="style-default" class="style-label">
+                            <div class="text-center">
+                                <div class="font-medium">Default</div>
+                                <div class="text-sm text-gray-500">Standard balanced style</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div>
+                        <input type="radio" name="imageStyle" id="style-realistic" value="Realistic" class="style-option">
+                        <label for="style-realistic" class="style-label">
+                            <div class="text-center">
+                                <div class="font-medium">Realistic</div>
+                                <div class="text-sm text-gray-500">True-to-life representation</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div>
+                        <input type="radio" name="imageStyle" id="style-cinematic" value="Cinematic" class="style-option">
+                        <label for="style-cinematic" class="style-label">
+                            <div class="text-center">
+                                <div class="font-medium">Cinematic</div>
+                                <div class="text-sm text-gray-500">Movie-like dramatic scenes</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div>
+                        <input type="radio" name="imageStyle" id="style-photographic" value="Photographic" class="style-option">
+                        <label for="style-photographic" class="style-label">
+                            <div class="text-center">
+                                <div class="font-medium">Photographic</div>
+                                <div class="text-sm text-gray-500">Professional photography look</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div>
+                        <input type="radio" name="imageStyle" id="style-3d" value="3D Model" class="style-option">
+                        <label for="style-3d" class="style-label">
+                            <div class="text-center">
+                                <div class="font-medium">3D Model</div>
+                                <div class="text-sm text-gray-500">3D rendered visualization</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div>
+                        <input type="radio" name="imageStyle" id="style-anime" value="Anime" class="style-option">
+                        <label for="style-anime" class="style-label">
+                            <div class="text-center">
+                                <div class="font-medium">Anime</div>
+                                <div class="text-sm text-gray-500">Japanese animation style</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div>
+                        <input type="radio" name="imageStyle" id="style-digital" value="Digital Art" class="style-option">
+                        <label for="style-digital" class="style-label">
+                            <div class="text-center">
+                                <div class="font-medium">Digital Art</div>
+                                <div class="text-sm text-gray-500">Modern digital illustration</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div>
+                        <input type="radio" name="imageStyle" id="style-dark" value="Dark" class="style-option">
+                        <label for="style-dark" class="style-label">
+                            <div class="text-center">
+                                <div class="font-medium">Dark</div>
+                                <div class="text-sm text-gray-500">Moody and atmospheric</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Caption Style Selector -->
+            <div class="space-y-4">
+                <h3 class="text-lg font-medium">Choose Caption Style</h3>
+                <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div>
+                        <input type="radio" name="captionStyle" id="caption-typewriter" value="typewriter" class="style-option">
+                        <label for="caption-typewriter" class="style-label">
+                            <div class="text-center">
+                                <div class="font-medium">Typewriter</div>
+                                <div class="text-sm text-gray-500">Text appears letter by letter</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div>
+                        <input type="radio" name="captionStyle" id="caption-bounce" value="bounce" class="style-option">
+                        <label for="caption-bounce" class="style-label">
+                            <div class="text-center">
+                                <div class="font-medium">Bounce In</div>
+                                <div class="text-sm text-gray-500">Text bounces into view</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div>
+                        <input type="radio" name="captionStyle" id="caption-glow" value="glow_effect" class="style-option">
+                        <label for="caption-glow" class="style-label">
+                            <div class="text-center">
+                                <div class="font-medium">Glow Effect</div>
+                                <div class="text-sm text-gray-500">Words glow when spoken</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div>
+                        <input type="radio" name="captionStyle" id="caption-submagic" value="submagic" class="style-option">
+                        <label for="caption-submagic" class="style-label">
+                            <div class="text-center">
+                                <div class="font-medium">Submagic</div>
+                                <div class="text-sm text-gray-500">Words scale and highlight</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div>
+                        <input type="radio" name="captionStyle" id="caption-gradient" value="gradient" class="style-option">
+                        <label for="caption-gradient" class="style-label">
+                            <div class="text-center">
+                                <div class="font-medium">Gradient Text</div>
+                                <div class="text-sm text-gray-500">Colorful gradient effects</div>
+                            </div>
+                        </label>
+                    </div>
+                    <div>
+                        <input type="radio" name="captionStyle" id="caption-karaoke" value="karaoke" class="style-option" checked>
+                        <label for="caption-karaoke" class="style-label">
+                            <div class="text-center">
+                                <div class="font-medium">Karaoke</div>
+                                <div class="text-sm text-gray-500">Classic karaoke highlighting</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Button -->
+            <button
+                id="createButton"
+                class="w-full py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+            >
+                Create Video
+            </button>
+        </div>
+
+        <!-- Progress Status -->
+        <div id="status" class="hidden space-y-4 mt-6">
+            <div class="w-full bg-gray-200 rounded-full h-4">
+                <div
+                    id="progress-bar"
+                    class="bg-blue-600 h-4 rounded-full transition-all duration-300"
+                    style="width: 0%"
+                ></div>
+            </div>
+            <div class="space-y-2">
+                <div class="flex justify-between text-sm text-gray-600">
+                    <span id="progress-percentage">0%</span>
+                    <span id="elapsed-time">Time: 0:00</span>
+                </div>
+                <div id="statusText" class="text-center">Initializing...</div>
+            </div>
+            <div class="flex justify-center">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+        </div>
+
+        <!-- Video Container -->
+        <div id="videoContainer" class="hidden space-y-4 mt-6">
+            <h2 class="text-lg font-semibold">Generated Video</h2>
+            <video id="videoPlayer" class="w-full rounded-lg shadow-lg" controls>
+                Your browser does not support the video tag.
+            </video>
+            <div class="flex space-x-4">
+                <a
+                    id="downloadButton"
+                    class="flex-1 text-center bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 transition-colors"
+                    download
+                >
+                    Download Video
+                </a>
+                <a
+                    id="editButton"
+                    class="flex-1 text-center bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                    href="#"
+                >
+                    Edit Video
+                </a>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error" class="hidden p-4 mt-6 bg-red-100 border border-red-400 text-red-700 rounded-md"></div>
+    </div>
+
+    <script>
+        // Single declaration of global variables
+        const app = {
+            currentTaskId: null,
+            activeWebSocket: null,
+
+            stylePromptMap: {
+                'Default': '',
+                'Realistic': ', photorealistic style, highly detailed',
+                'Cinematic': ', cinematic style, dramatic lighting, movie scene quality',
+                'Photographic': ', professional photography, high resolution, DSLR quality',
+                '3D Model': ', 3D rendered, octane render, detailed textures',
+                'Anime': ', anime style, manga art, cel shaded',
+                'Digital Art': ', digital art, stylized illustration, vibrant colors',
+                'Dark': ', dark and moody, atmospheric lighting, rich shadows'
+            },
+
+            // Helper functions
+            showError(message) {
+                const errorDiv = document.getElementById('error');
+                errorDiv.textContent = message;
+                errorDiv.classList.remove('hidden');
+            },
+
+            hideError() {
+                document.getElementById('error').classList.add('hidden');
+            },
+
+            showStatus() {
+                document.getElementById('status').classList.remove('hidden');
+                document.getElementById('createButton').disabled = true;
+            },
+
+            hideStatus() {
+                document.getElementById('status').classList.add('hidden');
+                document.getElementById('createButton').disabled = false;
+            },
+
+            formatTime(seconds) {
+                const minutes = Math.floor(seconds / 60);
+                const remainingSeconds = Math.floor(seconds % 60);
+                return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+            },
+
+            updateProgress(progress, currentStep, stepDetails) {
+                document.getElementById('progress-bar').style.width = `${progress}%`;
+                document.getElementById('progress-percentage').textContent = `${progress}%`;
+                document.getElementById('statusText').textContent = `${currentStep}: ${stepDetails}`;
+            },
+
+            resetUI() {
+                document.getElementById('videoContainer').classList.add('hidden');
+                document.getElementById('error').classList.add('hidden');
+                document.getElementById('status').classList.add('hidden');
+                document.getElementById('progress-bar').style.width = '0%';
+                document.getElementById('progress-percentage').textContent = '0%';
+                document.getElementById('elapsed-time').textContent = 'Time: 0:00';
+                document.getElementById('statusText').textContent = 'Initializing...';
+                
+                if (this.activeWebSocket) {
+                    this.activeWebSocket.close();
+                    this.activeWebSocket = null;
+                }
+            },
+
+            connectWebSocket(taskId) {
+                console.log('Connecting WebSocket for task:', taskId);
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const ws = new WebSocket(`${protocol}//${window.location.host}/ws/${taskId}`);
+                
+                const startTime = Date.now();
+                let timeInterval;
+                let pingInterval;
+
+                ws.onopen = () => {
+                    console.log('WebSocket connected');
+                    this.activeWebSocket = ws;
+                    
+                    timeInterval = setInterval(() => {
+                        const elapsedSeconds = (Date.now() - startTime) / 1000;
+                        document.getElementById('elapsed-time').textContent = 
+                            `Time: ${this.formatTime(elapsedSeconds)}`;
+                    }, 1000);
+
+                    pingInterval = setInterval(() => {
+                        if (ws.readyState === WebSocket.OPEN) {
+                            console.log('Sending ping');
+                            ws.send(JSON.stringify({ type: 'ping' }));
+                        }
+                    }, 5000);
+                };
+
+                ws.onmessage = (event) => {
+                    console.log('WebSocket message received:', event.data);
+                    try {
+                        const data = JSON.parse(event.data);
+                        console.log('Parsed WebSocket data:', data);
+                        
+                        if (data.type === 'pong') {
+                            console.log('Received pong');
+                            return;
+                        }
+                        
+                        if (data.progress !== undefined) {
+                            console.log('Updating progress:', data.progress);
+                            this.updateProgress(
+                                data.progress || 0,
+                                data.current_step || '',
+                                data.step_details || ''
+                            );
+                        }
+                        
+                        if (data.status === 'complete') {
+                            console.log('Video creation complete');
+                            clearInterval(timeInterval);
+                            clearInterval(pingInterval);
+                            this.hideStatus();
+                            
+                            const videoContainer = document.getElementById('videoContainer');
+                            const videoPlayer = document.getElementById('videoPlayer');
+                            const downloadButton = document.getElementById('downloadButton');
+                            const editButton = document.getElementById('editButton');
+                            
+                            videoContainer.classList.remove('hidden');
+                            videoPlayer.src = data.video_path || `/generated_videos/video_${taskId}.mp4`;
+                            downloadButton.href = data.video_path || `/generated_videos/video_${taskId}.mp4`;
+                            editButton.href = `/edit.html?video=${taskId}`;
+                            
+                            videoPlayer.load();
+                            ws.close();
+                        } else if (data.status === 'error') {
+                            console.error('Error status received:', data.error);
+                            clearInterval(timeInterval);
+                            clearInterval(pingInterval);
+                            this.hideStatus();
+                            this.showError(data.error || 'An error occurred during video creation');
+                            ws.close();
+                        }
+                    } catch (error) {
+                        console.error('Error processing WebSocket message:', error);
+                    }
+                };
+
+                ws.onerror = (error) => {
+                    console.error('WebSocket error:', error);
+                    clearInterval(timeInterval);
+                    clearInterval(pingInterval);
+                    this.showError('Connection error occurred');
+                };
+
+                ws.onclose = () => {
+                    console.log('WebSocket closed');
+                    clearInterval(timeInterval);
+                    clearInterval(pingInterval);
+                    this.activeWebSocket = null;
+                };
+
+                return ws;
+            },
+
+            updateProgress(progress, currentStep, stepDetails) {
+                console.log(`Updating progress - ${progress}% - ${currentStep}: ${stepDetails}`);
+                const progressBar = document.getElementById('progress-bar');
+                const progressPercentage = document.getElementById('progress-percentage');
+                const statusText = document.getElementById('statusText');
+                
+                if (progressBar) {
+                    progressBar.style.width = `${progress}%`;
+                }
+                if (progressPercentage) {
+                    progressPercentage.textContent = `${progress}%`;
+                }
+                if (statusText) {
+                    statusText.textContent = `${currentStep}: ${stepDetails}`;
+                }
+            },
+            async createVideo() {
+                const text = document.getElementById('storyInput').value;
+                const imageStyle = document.querySelector('input[name="imageStyle"]:checked').value;
+                const captionStyle = document.querySelector('input[name="captionStyle"]:checked').value;
+                
+                if (!text) {
+                    this.showError('Please enter a story first.');
+                    return;
+                }
+
+                try {
+                    this.hideError();
+                    this.showStatus();
+                    this.resetUI();
+                    
+                    const stylePrompt = this.stylePromptMap[imageStyle] || '';
+                    
+                    const response = await fetch('/api/create-video', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            text,
+                            caption_style: captionStyle,
+                            image_style: stylePrompt
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to start video creation');
+                    }
+
+                    const data = await response.json();
+                    if (data.status === 'started' && data.task_id) {
+                        this.currentTaskId = data.task_id;
+                        this.connectWebSocket(data.task_id);
+                    } else {
+                        throw new Error('Invalid response from server');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    this.showError(error.message);
+                    this.hideStatus();
+                }
+            },
+
+            init() {
+        
+                // Add event listener for create button
+                document.getElementById('createButton').addEventListener('click', () => {
+                    this.createVideo();
+                });
+
+                // Add any other initialization if needed
+                console.log('Video creator initialized');
+            }
+        };
+
+        // Initialize the application when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            app.init();
+        });
+    </script>
+</body>
+</html>
