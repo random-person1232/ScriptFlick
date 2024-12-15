@@ -96,48 +96,48 @@ async def get_home(request: Request):
 async def health_check():
     """Health check endpoint"""
     return {"status": "healthy"}
-@app.get("/create")
-async def get_create():
-    """Serve the create page"""
+
+
+@app.api_route("/create.html", methods=["GET", "HEAD"])
+async def serve_create_html():
     return await serve_html("create.html")
 
-@app.get("/create.html")
-async def get_create_html():
-    """Alternative route for create.html"""
-    return await serve_html("create.html")  # Add await here
-@app.get("/projects")
-async def get_projects():
-    """Serve the projects page"""
+@app.api_route("/projects.html", methods=["GET", "HEAD"])
+async def serve_projects_html():
     return await serve_html("projects.html")
+
+@app.api_route("/pricing.html", methods=["GET", "HEAD"])
+async def serve_pricing_html():
+    return await serve_html("pricing.html")
+
+@app.api_route("/edit.html", methods=["GET", "HEAD"])
+async def serve_edit_html():
+    return await serve_html("edit.html")
+
 @app.websocket("/ws/{task_id}")
 async def websocket_endpoint(websocket: WebSocket, task_id: str):
     await connection_manager.connect(task_id, websocket)
     try:
         while True:
-            await websocket.receive_text()  # Keep connection alive
+            data = await websocket.receive_text()
+            # Send current status to client
+            await websocket.send_json({
+                "status": video_status.status,
+                "progress": video_status.progress,
+                "current_step": video_status.current_step,
+                "step_details": video_status.step_details
+            })
     except Exception as e:
         logger.error(f"WebSocket error: {str(e)}")
     finally:
         await connection_manager.disconnect(task_id)
-@app.get("/projects.html")
-async def get_projects_html():
-    """Alternative route for projects.html"""
-    return await serve_html("projects.html")
 
-@app.get("/pricing")
-async def get_pricing():
-    """Serve the pricing page"""
-    return await serve_html("pricing.html")
 
-@app.get("/pricing.html")
-async def get_pricing_html():
-    """Alternative route for pricing.html"""
-    return await serve_html("pricing.html")
 
 # Serve static files like logo.png
 @app.get("/logo.png")
 async def get_logo():
-    return FileResponse("static/logo.png")
+    return await FileResponse("static/logo.png")
 
 def save_project_metadata(project_id: str, title: str):
     """Save project metadata to a JSON file"""
@@ -187,15 +187,7 @@ async def get_status():
                 "step_details": str(e)
             }
         )
-@app.get("/edit")
-async def get_edit():
-    """Serve the edit page"""
-    return await serve_html("edit.html")
 
-@app.get("/edit.html")
-async def get_edit_html():
-    """Alternative route for edit.html"""
-    return await serve_html("edit.html")
 
 @app.get("/api/video-metadata/{video_id}")
 async def get_video_metadata(video_id: str):
@@ -394,16 +386,13 @@ async def update_video(request: Dict):
             detail=f"Failed to update video: {str(e)}"
         )
 
-# server.py
 async def create_video_task(text: str, caption_style: str, image_style: str, task_id: str):
     try:
-        # Now connection_manager is properly imported
         await connection_manager.connect(task_id)
         video_status.status = "processing"
         video_status.progress = 0
+        video_status.current_step = "Starting video creation"
         
-        
-        # Increase timeout to 1 hour
         async with asyncio.timeout(3600):  # 60 minutes timeout
             result = await main(
                 story_input=text, 
@@ -413,17 +402,14 @@ async def create_video_task(text: str, caption_style: str, image_style: str, tas
             )
             
             if result and result.get("status") == "success":
-                # Generate a meaningful title from the first few words of the text
                 words = text.split()
                 title = " ".join(words[:5]) + "..." if len(words) > 5 else text
                 
-                # Save project metadata for the projects page
                 save_project_metadata(
                     project_id=task_id,
                     title=title
                 )
                 
-                # Ensure metadata includes caption style and final paths
                 metadata_path = f"generated_videos/metadata_{task_id}.json"
                 if os.path.exists(metadata_path):
                     try:
@@ -434,7 +420,8 @@ async def create_video_task(text: str, caption_style: str, image_style: str, tas
                             'caption_style': caption_style,
                             'final_video_path': result.get("video_path"),
                             'project_title': title,
-                            'creation_date': datetime.now().isoformat()
+                            'creation_date': datetime.now().isoformat(),
+                            'status': 'complete'  # Add status field
                         })
                         
                         with open(metadata_path, 'w') as f:
@@ -590,4 +577,3 @@ if __name__ == "__main__":
         limit_concurrency=500,
         backlog=1000
     )
-    
