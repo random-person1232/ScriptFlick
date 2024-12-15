@@ -137,30 +137,11 @@ async def websocket_endpoint(websocket: WebSocket, task_id: str):
 # Serve static files like logo.png
 @app.get("/logo.png")
 async def get_logo():
-    return await FileResponse("static/logo.png")
+    logo_path = BASE_DIR / "static" / "logo.png"
+    if not os.path.exists(str(logo_path)):
+        raise HTTPException(status_code=404, detail="Logo not found")
+    return FileResponse(str(logo_path))
 
-def save_project_metadata(project_id: str, title: str):
-    """Save project metadata to a JSON file"""
-    project = {
-        "id": project_id,
-        "title": title,
-        "created_at": datetime.now().isoformat()
-    }
-    
-    projects_file = "generated_videos/projects.json"
-    projects = []
-    
-    if os.path.exists(projects_file):
-        with open(projects_file, "r") as f:
-            try:
-                projects = json.load(f)
-            except json.JSONDecodeError:
-                projects = []
-    
-    projects.append(project)
-    
-    with open(projects_file, "w") as f:
-        json.dump(projects, f)
 
 
 
@@ -385,7 +366,28 @@ async def update_video(request: Dict):
             status_code=500, 
             detail=f"Failed to update video: {str(e)}"
         )
-
+def save_project_metadata(project_id: str, title: str):
+    """Save project metadata to a JSON file"""
+    project = {
+        "id": project_id,
+        "title": title,
+        "created_at": datetime.now().isoformat()
+    }
+    
+    projects_file = BASE_DIR / "generated_videos" / "projects.json"
+    projects = []
+    
+    if projects_file.exists():
+        with projects_file.open('r') as f:
+            try:
+                projects = json.load(f)
+            except json.JSONDecodeError:
+                projects = []
+    
+    projects.append(project)
+    
+    with projects_file.open('w') as f:
+        json.dump(projects, f)
 async def create_video_task(text: str, caption_style: str, image_style: str, task_id: str):
     try:
         await connection_manager.connect(task_id)
